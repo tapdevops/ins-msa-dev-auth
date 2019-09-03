@@ -46,20 +46,17 @@
             autoCommit: false
         }
     );
-	consumer.on('message', function (message) {
+	consumer.on('message', async function (message) {
 		json_message = JSON.parse(message.value);
 		if(message.topic=="kafkaRequestData"){
 			//ada yang request data ke microservices
 			let reqDataObj;
 			let responseData = false;
-			console.log( json_message );
-			console.log( "msg_agg", json_message.agg );
 			if(json_message.msa_name=="auth"){
-				const matchJSON = JSON.parse( json_message.agg );
 				if( json_message.agg ){
 					console.log( "matchJSON", matchJSON );
 					const set = ViewUserAuth.aggregate( [	
-						// 	matchJSON
+						matchJSON
 					] );
 					reqDataObj = {
 						"msa_name":json_message.msa_name,
@@ -69,15 +66,32 @@
 						"data": set
 					}
 					responseData = true;	
-				}
+				}else{
+					const set = await ViewUserAuth.aggregate( [
+						{
+							"$project": {
+								"id": 0
+							}
+						}	
+					] );
+					console.log( "SET: ", set );
+					reqDataObj = {
+						"msa_name":json_message.msa_name,
+						"model_name":json_message.model_name,
+						"requester":json_message.requester,
+						"request_id":json_message.request_id,
+						"data": set
+					}
+					responseData = true;
+				 }
 			}
 			if( responseData ){
 				let payloads = [
 					{ topic: "kafkaResponseData", messages: JSON.stringify( reqDataObj ), partition: 0 }
 				];
-				// producer.send( payloads, function( err, data ){
-				// 	console.log( "Send data to kafka", data );
-				// } );
+				producer.send( payloads, function( err, data ){
+					console.log( "Send data to kafka", data );
+				} );
 			}
 		}
 	});
