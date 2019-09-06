@@ -7,7 +7,7 @@
 	global.config = {};
 		  config.app = require( './config/app.js' );
 		  config.database = require( './config/database.js' )[config.app.env];
-	const ViewUserAuth = require( _directory_base + '/app/v1.0/Http/Models/ViewUserAuthModel.js' )
+	const ViewUserAuth = require( _directory_base + '/app/v1.0/Http/Models/UserAuthModel.js' )
 
 /*
 |--------------------------------------------------------------------------
@@ -40,13 +40,15 @@
 	consumer = new Consumer(
         client,
         [
-            { topic: 'kafkaRequestData', partition: 0 },{ topic: 'kafkaDataCollectionProgress', partition: 0 },{ topic: 'kafkaResponse', partition: 0 }
+            {topic: 'kafkaRequestData', partition: 0 },{ topic: 'kafkaDataCollectionProgress', partition: 0 },{ topic: 'kafkaResponse', partition: 0 }
         ],
         {
             autoCommit: false
         }
     );
 	consumer.on('message', async function (message) {
+
+		// console.log(message);
 		json_message = JSON.parse(message.value);
 		if(message.topic=="kafkaRequestData"){
 			//ada yang request data ke microservices
@@ -54,9 +56,14 @@
 			let responseData = false;
 			if(json_message.msa_name=="auth"){
 				if( json_message.agg ){
-					console.log( "matchJSON", matchJSON );
-					const set = ViewUserAuth.aggregate( [	
-						matchJSON
+					// console.log( "matchJSON", matchJSON );
+					var agg = JSON.parse( json_message.agg );
+
+					console.log("AUTH NIH");
+					// console.log(agg);
+
+					const set = await ViewUserAuth.aggregate( [	
+						agg
 					] );
 					reqDataObj = {
 						"msa_name":json_message.msa_name,
@@ -66,6 +73,8 @@
 						"data": set
 					}
 					responseData = true;	
+
+					console.log( "Jumlah Data: " + set.length );
 				}else{
 					const set = await ViewUserAuth.aggregate( [
 						{
@@ -74,7 +83,7 @@
 							}
 						}	
 					] );
-					console.log( "SET: ", set );
+					// console.log( "SET: ", set );
 					reqDataObj = {
 						"msa_name":json_message.msa_name,
 						"model_name":json_message.model_name,
@@ -89,6 +98,8 @@
 				let payloads = [
 					{ topic: "kafkaResponseData", messages: JSON.stringify( reqDataObj ), partition: 0 }
 				];
+				console.log("PAYLOADS:");
+				console.log(payloads);
 				producer.send( payloads, function( err, data ){
 					console.log( "Send data to kafka", data );
 				} );
@@ -126,11 +137,16 @@
 	} );
 
 	// Server Running Message
-	App.listen( parseInt( config.app.port[config.app.env] ), () => {
-		console.log( "Server :" );
-		console.log( "\tStatus \t\t: OK" );
-		console.log( "\tService \t: " + config.app.name + " (" + config.app.env + ")" );
-		console.log( "\tPort \t\t: " + config.app.port[config.app.env] );
+	// App.listen( parseInt( config.app.port[config.app.env] ), () => {
+	// 	console.log( "Server :" );
+	// 	console.log( "\tStatus \t\t: OK" );
+	// 	console.log( "\tService \t: " + config.app.name + " (" + config.app.env + ")" );
+	// 	console.log( "\tPort \t\t: " + config.app.port[config.app.env] );
+	// } );
+
+	var Server = App.listen( parseInt( config.app.port[config.app.env] ), () => {
+		Server.timeout = 120 * 60 * 1000;
+		console.log( "Server connected at " + parseInt( config.app.port[config.app.env] ) + " (" + config.app.env + ")" );
 	} );
 
 /*
