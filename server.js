@@ -49,7 +49,7 @@
 	consumer.on('message', async function (message) {
 
 		// console.log(message);
-		json_message = JSON.parse(message.value);
+		let json_message = JSON.parse(message.value);
 		if(message.topic=="kafkaRequestData"){
 			//ada yang request data ke microservices
 			let reqDataObj;
@@ -59,7 +59,6 @@
 					// console.log( "matchJSON", matchJSON );
 					var agg = JSON.parse( json_message.agg );
 
-					console.log("AUTH NIH");
 					// console.log(agg);
 
 					const set = await ViewUserAuth.aggregate( [	
@@ -74,7 +73,7 @@
 					}
 					responseData = true;	
 
-					console.log( "Jumlah Data: " + set.length );
+					//console.log( "Jumlah Data: " + set.length );
 				}else{
 					const set = await ViewUserAuth.aggregate( [
 						{
@@ -93,16 +92,16 @@
 					}
 					responseData = true;
 				 }
-			}
-			if( responseData ){
-				let payloads = [
-					{ topic: "kafkaResponseData", messages: JSON.stringify( reqDataObj ), partition: 0 }
-				];
-				console.log("PAYLOADS:");
-				console.log(payloads);
-				producer.send( payloads, function( err, data ){
-					console.log( "Send data to kafka", data );
-				} );
+				if( responseData ){
+					let payloads = [
+						{ topic: "kafkaResponseData", messages: JSON.stringify( reqDataObj ), partition: 0 }
+					];
+					//console.log("PAYLOADS:");
+					//console.log(payloads);
+					producer.send( payloads, function( err, data ){
+						console.log( "Send data to kafka", data );
+					} );
+				}
 			}
 		}
 	});
