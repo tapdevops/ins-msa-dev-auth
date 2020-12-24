@@ -15,7 +15,7 @@
 		"crypto": "^1.0.1",
 		"csv-parser": "^2.3.2",
 		"csvtojson": "^2.0.10",
-		"date-and-time": "^0.6.3",
+		"date-and-time": "^0.14.2",
 		"dateformat": "^3.0.3",
 		"express": "^4.16.4",
 		"express-aglio": "^1.0.2",
